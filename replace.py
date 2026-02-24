@@ -201,6 +201,18 @@ def process_local_repo(repo_path: str, old_email: str, new_email: str):
     console.print(Rule(f"[bold cyan]{name}[/bold cyan]", style="cyan"))
     console.print()
 
+    # ─── 書き換え前ダブルチェック ───────────────────────────────
+    console.print(f"  対象: [cyan]{path}[/cyan]")
+    console.print(f"  書き換え: [red]{old_email}[/red] → [green]{new_email}[/green]")
+    console.print()
+    if not Confirm.ask("  [bold yellow]⚠ この操作はコミット履歴を破壊的に変更します。続行しますか？[/bold yellow]", default=False):
+        console.print("  [dim]書き換えをスキップしました。[/dim]\n")
+        return
+    if not Confirm.ask("  [bold red]⚠ 本当に履歴を書き換えますか？（取り消せません）[/bold red]", default=False):
+        console.print("  [dim]書き換えをスキップしました。[/dim]\n")
+        return
+    console.print()
+
     callback = (
         f'if email == b"{old_email}":\n'
         f'    return b"{new_email}"\n'
@@ -232,7 +244,12 @@ def process_local_repo(repo_path: str, old_email: str, new_email: str):
 
         if origin_url:
             console.print(f"  origin: [dim]{origin_url}[/dim]")
-            if Confirm.ask(f"  [bold]{origin_url}[/bold] へ強制プッシュしますか？", default=False):
+            # ─── プッシュ前ダブルチェック ───────────────────────────
+            if not Confirm.ask(f"  [bold]{origin_url}[/bold] へ強制プッシュしますか？", default=False):
+                console.print("  [dim]プッシュをスキップしました。[/dim]")
+            elif not Confirm.ask("  [bold red]⚠ 本当に強制プッシュしますか？リモートの履歴が上書きされます。[/bold red]", default=False):
+                console.print("  [dim]プッシュをスキップしました。[/dim]")
+            else:
                 console.print()
                 with Progress(
                     SpinnerColumn(style="cyan"),
@@ -245,8 +262,6 @@ def process_local_repo(repo_path: str, old_email: str, new_email: str):
 
                 console.print("  [green]✓[/green] 全ブランチのプッシュ完了")
                 _delete_remote_tags(origin_url)
-            else:
-                console.print("  [dim]プッシュをスキップしました。[/dim]")
         else:
             console.print("  [dim]origin が設定されていないためプッシュをスキップします。[/dim]")
 
@@ -261,6 +276,18 @@ def process_remote_repo(repo: str, old_email: str, new_email: str):
     name = repo.rstrip("/").split("/")[-1].replace(".git", "")
 
     console.print(Rule(f"[bold cyan]{name}[/bold cyan]", style="cyan"))
+    console.print()
+
+    # ─── 書き換え前ダブルチェック ───────────────────────────────
+    console.print(f"  対象URL: [blue]{repo}[/blue]")
+    console.print(f"  書き換え: [red]{old_email}[/red] → [green]{new_email}[/green]")
+    console.print()
+    if not Confirm.ask("  [bold yellow]⚠ この操作はコミット履歴を破壊的に変更します。続行しますか？[/bold yellow]", default=False):
+        console.print("  [dim]書き換えをスキップしました。[/dim]\n")
+        return
+    if not Confirm.ask("  [bold red]⚠ 本当に履歴を書き換えますか？（取り消せません）[/bold red]", default=False):
+        console.print("  [dim]書き換えをスキップしました。[/dim]\n")
+        return
     console.print()
 
     # clone
@@ -299,7 +326,12 @@ def process_remote_repo(repo: str, old_email: str, new_email: str):
         console.print("  [green]✓[/green] origin を再設定")
         console.print()
 
-        if Confirm.ask(f"  [bold]{repo}[/bold] へ強制プッシュしますか？", default=False):
+        # ─── プッシュ前ダブルチェック ───────────────────────────
+        if not Confirm.ask(f"  [bold]{repo}[/bold] へ強制プッシュしますか？", default=False):
+            console.print("  [dim]プッシュをスキップしました。[/dim]")
+        elif not Confirm.ask("  [bold red]⚠ 本当に強制プッシュしますか？リモートの履歴が上書きされます。[/bold red]", default=False):
+            console.print("  [dim]プッシュをスキップしました。[/dim]")
+        else:
             console.print()
             with Progress(
                 SpinnerColumn(style="cyan"),
@@ -312,8 +344,6 @@ def process_remote_repo(repo: str, old_email: str, new_email: str):
 
             console.print("  [green]✓[/green] 全ブランチのプッシュ完了")
             _delete_remote_tags(repo)
-        else:
-            console.print("  [dim]プッシュをスキップしました。[/dim]")
     finally:
         os.chdir("..")
 
